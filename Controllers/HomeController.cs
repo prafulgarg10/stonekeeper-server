@@ -84,6 +84,30 @@ public class HomeController : Controller
                 });
     }
 
+    [HttpPost("update-product")]
+    public async Task<IActionResult> UpdateProduct([FromBody] ProductResponse p){
+        if(p==null){
+            return BadRequest("Kindly provide some value to update");
+        }
+        if(p.id<=0){
+            return NotFound();
+        }
+        var product = _db.Products.Where(pd => pd.Id==p.id).FirstOrDefault();
+        if(product!=null){
+            product.Name = p.name;
+            product.Weight = p.weight;
+            product.MaterialId = p.material;
+            product.CategoryId = p.category;
+            product.Quantity = p.quantity;
+            await _db.SaveChangesAsync();
+            return Ok(new
+                {
+                    id = product.Id
+                });
+        }
+        return NotFound();
+    }
+
     //[Authorize(Roles = "Admin")]
 
     [HttpPost("add-category")]
