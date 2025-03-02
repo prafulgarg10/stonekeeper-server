@@ -50,8 +50,13 @@ public class HomeController : Controller
             category = p.CategoryId,
             material = p.MaterialId,
             categoryName = p.Category.Name,
-            materialName = p.Material.Name
+            materialName = p.Material.Name,
+            productImage = p.ProductImage!=null ? new FileDTO{
+                name = p.ImageName,
+                base64 = Convert.ToBase64String(p.ProductImage)
+            } : null
         }).ToList();
+
         return new ObjectResult(products);
     }
 
@@ -67,7 +72,9 @@ public class HomeController : Controller
             Weight = p.weight,
             MaterialId = p.material,
             CategoryId = p.category,
-            Quantity = p.quantity
+            Quantity = p.quantity,
+            ProductImage = p.productImage!=null ? Convert.FromBase64String(p.productImage.base64) : null,
+            ImageName = p.productImage!=null ? p.productImage.name : null
         };
         _db.Products.Add(product);
         await _db.SaveChangesAsync();

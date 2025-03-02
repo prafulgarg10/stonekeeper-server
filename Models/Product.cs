@@ -23,6 +23,10 @@ public partial class Product
 
     public DateTime? LastUpdated { get; set; }
 
+    public byte[]? ProductImage { get; set; }
+
+    public string? ImageName { get; set; }
+
     public virtual Category Category { get; set; } = null!;
 
     public virtual Material Material { get; set; } = null!;
