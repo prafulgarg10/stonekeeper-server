@@ -9,7 +9,7 @@ public partial class PricePerTenGram
 
     public int Price { get; set; }
 
-    public DateTime? LastUpdated { get; set; }
+    public DateTime LastUpdated { get; set; }
 
     public virtual Material IdNavigation { get; set; } = null!;
 }

@@ -183,7 +183,9 @@ public partial class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<PricePerTenGram>(entity =>
         {
-            entity.HasNoKey();
+            entity.HasKey(e => new { e.Id, e.Price, e.LastUpdated })
+                .HasName("PRIMARY")
+                .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0, 0 });
 
             entity.HasIndex(e => e.Id, "Id");
 
@@ -191,7 +193,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp");
 
-            entity.HasOne(d => d.IdNavigation).WithMany()
+            entity.HasOne(d => d.IdNavigation).WithMany(p => p.PricePerTenGrams)
                 .HasForeignKey(d => d.Id)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pricepertengrams_ibfk_1");
@@ -222,7 +224,7 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.MaterialId).HasColumnName("Material_Id");
             entity.Property(e => e.Name).HasMaxLength(30);
             entity.Property(e => e.ProductImage)
-                .HasColumnType("blob")
+                .HasColumnType("mediumblob")
                 .HasColumnName("product_image");
             entity.Property(e => e.Weight).HasPrecision(10, 2);
 

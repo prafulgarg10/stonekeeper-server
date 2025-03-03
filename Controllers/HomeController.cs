@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -120,6 +121,33 @@ public class HomeController : Controller
         return Ok(new
                 {
                     id = category.Id
+                });
+    }
+
+    [HttpGet("latest-price")]
+    public ObjectResult GetLatestPrice(){
+        
+        string query = "SELECT mt.Name As materialName, mt.Id As materialId, pr.Price As price, pr.LastUpdated As lastUpdated FROM PricePerTenGrams pr INNER JOIN Material mt ON pr.Id = mt.Id WHERE (pr.Id, LastUpdated) IN (SELECT Id, MAX(LastUpdated) LastUpdated FROM PricePerTenGrams GROUP BY Id)";
+        FormattableString qury = FormattableStringFactory.Create(query);
+        var result = _db.Database.SqlQuery<PricePerTenGramResponse>(qury).ToList();
+        return new ObjectResult(result);
+    }
+
+    [HttpPost("add-pricing")]
+    public async Task<IActionResult> AddNewPricing([FromBody] PricePerTenGramResponse pricePerTenGram){
+        if(pricePerTenGram==null){
+            return BadRequest("Kindly provide some value to add");
+        }
+        PricePerTenGram lPrice = new PricePerTenGram(){
+            Price = pricePerTenGram.price,
+            Id = pricePerTenGram.materialId,
+            LastUpdated = DateTime.Now
+        };
+        _db.PricePerTenGrams.Add(lPrice);
+        await _db.SaveChangesAsync();
+        return Ok(new
+                {
+                    lastUpdated = lPrice.LastUpdated                    
                 });
     }
 
