@@ -7,11 +7,9 @@ public partial class Order
 {
     public int Id { get; set; }
 
-    public int ProductId { get; set; }
-
-    public int ProductQuantity { get; set; }
+    public decimal Total { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual Product Product { get; set; } = null!;
+    public virtual ICollection<OrderSummary> OrderSummaries { get; set; } = new List<OrderSummary>();
 }

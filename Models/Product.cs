@@ -17,19 +17,19 @@ public partial class Product
 
     public int MaterialId { get; set; }
 
+    public byte[]? ProductImage { get; set; }
+
+    public string? ImageName { get; set; }
+
     public bool? IsActive { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? LastUpdated { get; set; }
 
-    public byte[]? ProductImage { get; set; }
-
-    public string? ImageName { get; set; }
-
     public virtual Category Category { get; set; } = null!;
 
     public virtual Material Material { get; set; } = null!;
 
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+    public virtual ICollection<OrderSummary> OrderSummaries { get; set; } = new List<OrderSummary>();
 }

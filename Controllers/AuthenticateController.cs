@@ -9,7 +9,7 @@ using MyFirstServer.Models;
 
 namespace MyFirstServer.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("/")]
     [ApiController]
     public class AuthenticateController : ControllerBase
     {

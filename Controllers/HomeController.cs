@@ -28,7 +28,7 @@ public class HomeController : Controller
         return View();
     }
 
-
+    [Authorize]
     [HttpGet("categories")]
     public ObjectResult GetCategories(){
         var categories = _db.Categories.OrderBy(c => c.Name).ThenBy(c => c.Purity).ToList();

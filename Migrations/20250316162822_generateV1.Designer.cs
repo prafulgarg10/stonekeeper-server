@@ -11,8 +11,8 @@ using MyFirstServer.Data;
 namespace MyFirstServer.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250224185559_MyMigration")]
-    partial class MyMigration
+    [Migration("20250316162822_generateV1")]
+    partial class generateV1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -211,6 +211,21 @@ namespace MyFirstServer.Migrations
                         .HasColumnName("Created_At")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<decimal>("Total")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("MyFirstServer.Models.OrderSummary", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int")
                         .HasColumnName("Product_Id");
@@ -219,12 +234,23 @@ namespace MyFirstServer.Migrations
                         .HasColumnType("int")
                         .HasColumnName("Product_Quantity");
 
-                    b.HasKey("Id")
-                        .HasName("PRIMARY");
+                    b.Property<decimal>("ProductTotal")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("Product_Total");
+
+                    b.Property<decimal>("ProductWeight")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("Product_Weight");
+
+                    b.HasKey("Id", "ProductId")
+                        .HasName("PRIMARY")
+                        .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
 
                     b.HasIndex(new[] { "ProductId" }, "Product_Id");
 
-                    b.ToTable("Orders");
+                    b.ToTable("OrderSummary", (string)null);
                 });
 
             modelBuilder.Entity("MyFirstServer.Models.PricePerTenGram", b =>
@@ -232,15 +258,17 @@ namespace MyFirstServer.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("LastUpdated")
+                    b.Property<int>("Price")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LastUpdated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<int>("Price")
-                        .HasColumnType("int");
-
-                    b.HasIndex(new[] { "Id" }, "Id");
+                    b.HasKey("Id", "Price", "LastUpdated")
+                        .HasName("PRIMARY")
+                        .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0, 0 });
 
                     b.ToTable("PricePerTenGrams");
                 });
@@ -261,6 +289,11 @@ namespace MyFirstServer.Migrations
                         .HasColumnName("Created_At")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("ImageName")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("image_name");
+
                     b.Property<bool?>("IsActive")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("Is_Active");
@@ -278,6 +311,10 @@ namespace MyFirstServer.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)");
+
+                    b.Property<byte[]>("ProductImage")
+                        .HasColumnType("mediumblob")
+                        .HasColumnName("product_image");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -411,13 +448,21 @@ namespace MyFirstServer.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MyFirstServer.Models.Order", b =>
+            modelBuilder.Entity("MyFirstServer.Models.OrderSummary", b =>
                 {
+                    b.HasOne("MyFirstServer.Models.Order", "IdNavigation")
+                        .WithMany("OrderSummaries")
+                        .HasForeignKey("Id")
+                        .IsRequired()
+                        .HasConstraintName("ordersummary_ibfk_1");
+
                     b.HasOne("MyFirstServer.Models.Product", "Product")
-                        .WithMany("Orders")
+                        .WithMany("OrderSummaries")
                         .HasForeignKey("ProductId")
                         .IsRequired()
-                        .HasConstraintName("orders_ibfk_1");
+                        .HasConstraintName("ordersummary_ibfk_2");
+
+                    b.Navigation("IdNavigation");
 
                     b.Navigation("Product");
                 });
@@ -425,7 +470,7 @@ namespace MyFirstServer.Migrations
             modelBuilder.Entity("MyFirstServer.Models.PricePerTenGram", b =>
                 {
                     b.HasOne("MyFirstServer.Models.Material", "IdNavigation")
-                        .WithMany()
+                        .WithMany("PricePerTenGrams")
                         .HasForeignKey("Id")
                         .IsRequired()
                         .HasConstraintName("pricepertengrams_ibfk_1");
@@ -459,12 +504,19 @@ namespace MyFirstServer.Migrations
 
             modelBuilder.Entity("MyFirstServer.Models.Material", b =>
                 {
+                    b.Navigation("PricePerTenGrams");
+
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("MyFirstServer.Models.Order", b =>
+                {
+                    b.Navigation("OrderSummaries");
                 });
 
             modelBuilder.Entity("MyFirstServer.Models.Product", b =>
                 {
-                    b.Navigation("Orders");
+                    b.Navigation("OrderSummaries");
                 });
 #pragma warning restore 612, 618
         }
