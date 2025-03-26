@@ -13,35 +13,35 @@ namespace MyFirstServer.Controllers
     [ApiController]
     public class AuthenticateController : ControllerBase
     {
-        private readonly UserManager<User> userManager;
-        private readonly RoleManager<IdentityRole> roleManager;
         private readonly IConfiguration _configuration;
+        private readonly IAuthService _authService;
 
-        public AuthenticateController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        public AuthenticateController(IConfiguration configuration, IAuthService authService)
         {
-            this.userManager = userManager;
-            this.roleManager = roleManager;
             _configuration = configuration;
+            _authService = authService;
         }
 
         [HttpPost]
         [Route("login")]
         public async Task<IActionResult> Login([FromBody] Login model)
         {
-            var user = await userManager.FindByNameAsync(model.Username);
-            if (user != null && await userManager.CheckPasswordAsync(user, model.Password))
+            var user = await _authService.FindByNameAsync(model.Username);
+            if (user != null)
             {
-                var userRoles = await userManager.GetRolesAsync(user);
+                bool isPasswordMatches = _authService.CheckPassword(user, model.Password);
+                if(!isPasswordMatches){
+                    return Unauthorized(new Response { Status = "Unauthorized", Message = "Incorrect Password: Please provide correct password and try again." });
+                }
 
                 var authClaims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
-                foreach (var userRole in userRoles)
-                {
-                    authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+                if(user.Role?.Name!=null){
+                        authClaims.Add(new Claim(ClaimTypes.Role, user.Role.Name));
                 }
 
                 var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
@@ -60,25 +60,27 @@ namespace MyFirstServer.Controllers
                     expiration = token.ValidTo
                 });
             }
-            return Unauthorized();
+            return Unauthorized(new Response { Status = "Unauthorized", Message = "User not found. Please signup to login." });
         }
 
         [HttpPost]
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] Register model)
         {
-            var userExists = await userManager.FindByNameAsync(model.Username);
+            var userExists = await _authService.FindByNameAsync(model.Username);
             if (userExists != null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
 
-            User user = new User()
+            AppUser user = new AppUser()
             {
                 Email = model.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username
+                Username = model.Username,
+                IsActive = true,
+                RoleId = 2, //staff
+                Password = BCrypt.Net.BCrypt.HashPassword(model.Password)
             };
-            var result = await userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
+            var result = await _authService.CreateAsync(user);
+            if (result==null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
 
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
@@ -88,29 +90,21 @@ namespace MyFirstServer.Controllers
         [Route("register-admin")]
         public async Task<IActionResult> RegisterAdmin([FromBody] Register model)
         {
-            var userExists = await userManager.FindByNameAsync(model.Username);
+            var userExists = await _authService.FindByNameAsync(model.Username);
             if (userExists != null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
 
-            User user = new User()
+            AppUser user = new AppUser()
             {
                 Email = model.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username
+                Username = model.Username,
+                IsActive = true,
+                RoleId = 1, //admin
+                Password = BCrypt.Net.BCrypt.HashPassword(model.Password)
             };
-            var result = await userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
+            var result = await _authService.CreateAsync(user);
+            if (result==null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
-
-            if (!await roleManager.RoleExistsAsync(UserRoles.Admin))
-                await roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
-            if (!await roleManager.RoleExistsAsync(UserRoles.User))
-                await roleManager.CreateAsync(new IdentityRole(UserRoles.User));
-
-            if (await roleManager.RoleExistsAsync(UserRoles.Admin))
-            {
-                await userManager.AddToRoleAsync(user, UserRoles.Admin);
-            }
 
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
         }

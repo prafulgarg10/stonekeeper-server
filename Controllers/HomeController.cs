@@ -29,6 +29,7 @@ public class HomeController : Controller
         return View();
     }
 
+    [Authorize(Roles = "Staff")]
     [HttpGet("categories")]
     public ObjectResult GetCategories(){
         var categories = _db.Categories.OrderBy(c => c.Name).ThenBy(c => c.Purity).ToList();
@@ -60,8 +61,6 @@ public class HomeController : Controller
 
         return new ObjectResult(products);
     }
-
-    //[Authorize(Roles = "Admin")]
 
     [HttpPost("add-product")]
     public async Task<IActionResult> AddProduct([FromBody] ProductResponse p){

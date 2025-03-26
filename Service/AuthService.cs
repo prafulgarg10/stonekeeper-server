@@ -1,0 +1,52 @@
+using System;
+using Microsoft.EntityFrameworkCore;
+using MyFirstServer.Data;
+using MyFirstServer.Models;
+
+namespace MyFirstServer.Service;
+
+public class AuthService : IAuthService
+{
+    private readonly ApplicationDbContext _dbContext;
+
+    public AuthService(ApplicationDbContext dbContext){
+        _dbContext = dbContext;
+    }
+
+    public async Task<IEnumerable<AppUser>> GetAllUsersAsync()
+    {
+        return await _dbContext.AppUsers.ToListAsync();
+    }
+
+    public async Task<AppUser?> FindByNameAsync(string userName)
+    {
+        var user = await _dbContext.AppUsers.Where(u => u.Username.ToLower()==userName.ToLower()).FirstOrDefaultAsync();
+        if(user!=null){
+            var role = await _dbContext.Roles.Where(r => r.Id==user.RoleId).FirstOrDefaultAsync();
+            user.Role = role!=null ? role : user.Role;
+        }
+        return user;
+    }
+
+    public bool CheckPassword(AppUser user, string password)
+    {
+        string passwordHash = user.Password;
+        if(!string.IsNullOrEmpty(passwordHash)){
+            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+        }
+        return false;
+    }
+
+    public async Task<int?> CreateAsync(AppUser user)
+    {
+        try{
+            _dbContext.Add(user);
+            await _dbContext.SaveChangesAsync();
+        }
+        catch(Exception e){
+            Console.WriteLine("Error while adding user", e);
+            return null;
+        }
+        return user.Id;
+    }
+}

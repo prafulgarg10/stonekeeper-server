@@ -15,7 +15,13 @@ public partial class OrderSummary
 
     public decimal ProductTotal { get; set; }
 
+    public int ProductCategoryId { get; set; }
+
+    public int MaterialPriceId { get; set; }
+
     public virtual Order IdNavigation { get; set; } = null!;
+
+    public virtual PricePerTenGram MaterialPrice { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
 }

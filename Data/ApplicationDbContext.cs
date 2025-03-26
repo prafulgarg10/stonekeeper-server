@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MyFirstServer.Models;
 using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
 
 namespace MyFirstServer.Data;
 
-public partial class ApplicationDbContext : IdentityDbContext<User>
+public partial class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext()
     {
@@ -18,7 +17,13 @@ public partial class ApplicationDbContext : IdentityDbContext<User>
     {
     }
 
+    public virtual DbSet<AppConfig> AppConfigs { get; set; }
+
+    public virtual DbSet<AppUser> AppUsers { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
+
+    public virtual DbSet<EfmigrationsHistory> EfmigrationsHistories { get; set; }
 
     public virtual DbSet<Material> Materials { get; set; }
 
@@ -30,16 +35,47 @@ public partial class ApplicationDbContext : IdentityDbContext<User>
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<Role> Roles { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseMySql("server=localhost;port=3306;database=StonekeeperDB;user=root;password=Password@123", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
         modelBuilder
             .UseCollation("utf8mb4_0900_ai_ci")
             .HasCharSet("utf8mb4");
+
+        modelBuilder.Entity<AppConfig>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("AppConfig");
+
+            entity.Property(e => e.Name).HasMaxLength(50);
+            entity.Property(e => e.Value).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("AppUser");
+
+            entity.HasIndex(e => e.RoleId, "Role_Id");
+
+            entity.Property(e => e.Email).HasMaxLength(50);
+            entity.Property(e => e.IsActive).HasColumnName("Is_Active");
+            entity.Property(e => e.Password).HasMaxLength(255);
+            entity.Property(e => e.RoleId).HasColumnName("Role_Id");
+            entity.Property(e => e.Username).HasMaxLength(50);
+
+            entity.HasOne(d => d.Role).WithMany(p => p.AppUsers)
+                .HasForeignKey(d => d.RoleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("appuser_ibfk_1");
+        });
 
         modelBuilder.Entity<Category>(entity =>
         {
@@ -51,6 +87,16 @@ public partial class ApplicationDbContext : IdentityDbContext<User>
             entity.Property(e => e.IsActive).HasColumnName("Is_Active");
             entity.Property(e => e.Name).HasMaxLength(30);
             entity.Property(e => e.Purity).HasPrecision(5, 2);
+        });
+
+        modelBuilder.Entity<EfmigrationsHistory>(entity =>
+        {
+            entity.HasKey(e => e.MigrationId).HasName("PRIMARY");
+
+            entity.ToTable("__EFMigrationsHistory");
+
+            entity.Property(e => e.MigrationId).HasMaxLength(150);
+            entity.Property(e => e.ProductVersion).HasMaxLength(32);
         });
 
         modelBuilder.Entity<Material>(entity =>
@@ -81,9 +127,13 @@ public partial class ApplicationDbContext : IdentityDbContext<User>
 
             entity.ToTable("OrderSummary");
 
+            entity.HasIndex(e => e.MaterialPriceId, "Material_Price_Id");
+
             entity.HasIndex(e => e.ProductId, "Product_Id");
 
             entity.Property(e => e.ProductId).HasColumnName("Product_Id");
+            entity.Property(e => e.MaterialPriceId).HasColumnName("Material_Price_Id");
+            entity.Property(e => e.ProductCategoryId).HasColumnName("Product_Category_Id");
             entity.Property(e => e.ProductQuantity).HasColumnName("Product_Quantity");
             entity.Property(e => e.ProductTotal)
                 .HasPrecision(10, 2)
@@ -97,6 +147,11 @@ public partial class ApplicationDbContext : IdentityDbContext<User>
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("ordersummary_ibfk_1");
 
+            entity.HasOne(d => d.MaterialPrice).WithMany(p => p.OrderSummaries)
+                .HasForeignKey(d => d.MaterialPriceId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("ordersummary_ibfk_3");
+
             entity.HasOne(d => d.Product).WithMany(p => p.OrderSummaries)
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -105,18 +160,14 @@ public partial class ApplicationDbContext : IdentityDbContext<User>
 
         modelBuilder.Entity<PricePerTenGram>(entity =>
         {
-            entity.HasKey(e => new { e.Id, e.Price, e.LastUpdated })
-                .HasName("PRIMARY")
-                .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0, 0 });
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.HasIndex(e => e.MaterialId, "Material_Id");
 
             entity.Property(e => e.LastUpdated)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp");
-
-            entity.HasOne(d => d.IdNavigation).WithMany(p => p.PricePerTenGrams)
-                .HasForeignKey(d => d.Id)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("pricepertengrams_ibfk_1");
+            entity.Property(e => e.MaterialId).HasColumnName("Material_Id");
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -157,6 +208,14 @@ public partial class ApplicationDbContext : IdentityDbContext<User>
                 .HasForeignKey(d => d.MaterialId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("product_ibfk_1");
+        });
+
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.Property(e => e.IsActive).HasColumnName("Is_Active");
+            entity.Property(e => e.Name).HasMaxLength(50);
         });
 
         OnModelCreatingPartial(modelBuilder);

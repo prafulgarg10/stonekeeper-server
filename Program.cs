@@ -5,6 +5,8 @@ using MyFirstServer.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using MyFirstServer;
+using MyFirstServer.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +16,9 @@ var connectionString = builder.Configuration.GetSection("database")["SqlServerCo
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-builder.Services.AddIdentity<User, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", builder =>
