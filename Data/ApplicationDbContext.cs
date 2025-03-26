@@ -112,11 +112,19 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
+            entity.HasIndex(e => e.CreatedBy, "fk_userId");
+
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp")
                 .HasColumnName("Created_At");
+            entity.Property(e => e.CreatedBy).HasColumnName("Created_By");
             entity.Property(e => e.Total).HasPrecision(12, 2);
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Orders)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_userId");
         });
 
         modelBuilder.Entity<OrderSummary>(entity =>

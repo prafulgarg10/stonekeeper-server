@@ -11,5 +11,9 @@ public partial class Order
 
     public DateTime? CreatedAt { get; set; }
 
+    public int CreatedBy { get; set; }
+
+    public virtual AppUser CreatedByNavigation { get; set; } = null!;
+
     public virtual ICollection<OrderSummary> OrderSummaries { get; set; } = new List<OrderSummary>();
 }

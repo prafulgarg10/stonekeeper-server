@@ -1,9 +1,14 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.CompilerServices;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using MyFirstServer.Data;
 using MyFirstServer.Models;
 
@@ -14,12 +19,13 @@ public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private ApplicationDbContext _db;
-    private List<PricePerTenGramResponse> latestMaterialPrice;
+    private readonly IConfiguration _configuration;
 
-    public HomeController(ILogger<HomeController> logger, ApplicationDbContext dbContext)
+    public HomeController(ILogger<HomeController> logger, ApplicationDbContext dbContext, IConfiguration configuration)
     {
         _logger = logger;
         _db = dbContext;
+        _configuration = configuration;
     }
 
     [HttpGet("")]
@@ -145,18 +151,14 @@ public class HomeController : Controller
     }
 
     [HttpGet("latest-price")]
-    public ObjectResult GetLatestPrice(){
-        if(latestMaterialPrice!=null){
-            return new ObjectResult(latestMaterialPrice);
-        }
-        latestMaterialPrice = LatestMaterialPrice();
-        return new ObjectResult(latestMaterialPrice);
+    public async Task<ObjectResult> GetLatestPrice(){
+        return new ObjectResult(await LatestMaterialPrice());
     }
 
-    private List<PricePerTenGramResponse> LatestMaterialPrice(){
-        string query = "SELECT mt.Name As materialName, mt.Id As materialId, pr.Price As price, pr.LastUpdated As lastUpdated FROM PricePerTenGrams pr INNER JOIN Material mt ON pr.Id = mt.Id WHERE (pr.Id, LastUpdated) IN (SELECT Id, MAX(LastUpdated) LastUpdated FROM PricePerTenGrams GROUP BY Id)";
+    private async Task<List<PricePerTenGramResponse>> LatestMaterialPrice(){
+        string query = "SELECT mt.Name As materialName, mt.Id As materialId, pr.Price As price, pr.LastUpdated As lastUpdated, pr.Id As id FROM PricePerTenGrams pr INNER JOIN Material mt ON pr.Id = mt.Id WHERE (pr.Id, LastUpdated) IN (SELECT Id, MAX(LastUpdated) LastUpdated FROM PricePerTenGrams GROUP BY Id)";
         FormattableString qury = FormattableStringFactory.Create(query);
-        var result = _db.Database.SqlQuery<PricePerTenGramResponse>(qury).ToList();
+        var result = await _db.Database.SqlQuery<PricePerTenGramResponse>(qury).ToListAsync();
         return result; 
     }
 
@@ -167,12 +169,11 @@ public class HomeController : Controller
         }
         PricePerTenGram lPrice = new PricePerTenGram(){
             Price = pricePerTenGram.price,
-            Id = pricePerTenGram.materialId,
+            MaterialId = pricePerTenGram.materialId,
             LastUpdated = DateTime.Now
         };
         _db.PricePerTenGrams.Add(lPrice);
         await _db.SaveChangesAsync();
-        latestMaterialPrice = LatestMaterialPrice();
         return Ok(new
                 {
                     lastUpdated = lPrice.LastUpdated                    
@@ -184,10 +185,15 @@ public class HomeController : Controller
         if(order==null || (order!=null&&order.Length==0)){
             return BadRequest(new {message = "Kindly add some products.", orderId=0});
         }
+        var loggedInUser = await GetUserInfoFromToken();
+        var latestMaterialPrice = await LatestMaterialPrice();
+        if(loggedInUser==null){
+            return BadRequest(new {message = "Kindly login to place an order.", orderId=0});
+        }
         decimal total = 0;
         foreach (var item in order)
         {
-            item.price = CalculatePrice(item.productId, item.weight); 
+            item.price = CalculatePrice(item.productId, item.weight, latestMaterialPrice); 
             if(item.price==null || item.price==0){
                 return BadRequest(new {message = "Please remove a product having amount zero and try again.", orderId=0});
             }
@@ -195,6 +201,7 @@ public class HomeController : Controller
         };
         Order or = new Order(){
             Total = total,
+            CreatedBy = loggedInUser.Id,
             CreatedAt = DateTime.Now
         };
         _db.Orders.Add(or);
@@ -203,13 +210,16 @@ public class HomeController : Controller
         {
             Product? product = _db.Products.Where(p => p.Id==item.productId).FirstOrDefault();
             if(product!=null){
+                var currentPriceId = latestMaterialPrice.Where(p => p.materialId==product.MaterialId).Select(p => p.id).FirstOrDefault();
                 if(product.Weight>item.weight && product.Quantity>item.quantity){
                     OrderSummary os = new OrderSummary(){
                     Id = or.Id,
                     ProductId = item.productId,
                     ProductQuantity = item.quantity,
                     ProductWeight = item.weight,
-                    ProductTotal = item.price.Value
+                    ProductTotal = item.price.Value,
+                    ProductCategoryId = product.CategoryId,
+                    MaterialPriceId = currentPriceId
                     };
                     product.Weight = product.Weight-item.weight;
                     product.Quantity = product.Quantity-item.quantity;
@@ -222,7 +232,9 @@ public class HomeController : Controller
                     ProductId = item.productId,
                     ProductQuantity = item.quantity,
                     ProductWeight = item.weight,
-                    ProductTotal = item.price.Value
+                    ProductTotal = item.price.Value,
+                    ProductCategoryId = product.CategoryId,
+                    MaterialPriceId = currentPriceId
                     };
                     product.Weight = 0;
                     product.Quantity = 0;
@@ -240,22 +252,78 @@ public class HomeController : Controller
                 });
     }
 
-    private decimal CalculatePrice(int Id, decimal weight){
+    private decimal CalculatePrice(int Id, decimal weight, List<PricePerTenGramResponse> latestMaterialPrice){
        Product? product = _db.Products.Where(p => p.Id==Id).FirstOrDefault();
        decimal total = 0;
        if(product!=null){
         decimal? purity = _db.Categories.Where(c => c.Id==product.CategoryId).Select(c => c.Purity).FirstOrDefault();
         Nullable<int> materialPrice = null;
-        if(latestMaterialPrice==null){
-            latestMaterialPrice = LatestMaterialPrice();
-            
+        if(latestMaterialPrice!=null){
+            materialPrice = latestMaterialPrice.Where(p => p.materialId==product.MaterialId).Select(p => p.price).FirstOrDefault();
         }
-        materialPrice = latestMaterialPrice.Where(p => p.materialId==product.MaterialId).Select(p => p.price).FirstOrDefault();
         if(purity!=null && materialPrice!=null){
             total = purity.Value*materialPrice.Value*weight/1000;
         }
        }
        return total;
+    }
+
+
+    [HttpGet("get-orders")]
+    public async Task<List<UserOrders?>> GetOrders(){
+        var loggedInUser = await GetUserInfoFromToken();
+        if(loggedInUser!=null){
+            var orders = await _db.Orders.Where(o => o.CreatedBy==loggedInUser.Id).ToListAsync();
+            List<UserOrders?> userOrders = new List<UserOrders?>();
+            foreach (var o in orders)
+            {
+                var createdBy = await _db.AppUsers.Where(u => u.Id==o.CreatedBy).Select(u => u.Username).FirstOrDefaultAsync();
+                UserOrders userOrder = new UserOrders();
+                userOrder.orderId = o.Id;
+                userOrder.totalAmount = o.Total;
+                userOrder.createBy = createdBy!=null ? createdBy : "";
+                userOrder.createdOn = o.CreatedAt;
+                var orderSummary = await _db.OrderSummaries.Where(os => os.Id==o.Id).ToListAsync();
+                var productsPerOrder = orderSummary.Select(os => new ProductPerOrder{
+                    materialPrice = _db.PricePerTenGrams.Where(p => p.Id==os.MaterialPriceId).Select(p => p.Price).FirstOrDefault(),
+                    Name = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.Name).FirstOrDefault(),
+                    ProductImage = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.ProductImage).FirstOrDefault(),
+                    Weight = os.ProductWeight,
+                    Quantity = os.ProductQuantity,
+                    productTotal = os.ProductTotal,
+                    Purity = _db.Categories.Where(c => c.Id==os.ProductCategoryId).Select(c => c.Purity).FirstOrDefault()
+                }).ToList();
+
+                userOrder.products = productsPerOrder;
+                userOrders.Add(userOrder);
+            }
+            return userOrders;
+        }
+        return null;
+    }
+
+    private async Task<AppUser?> GetUserInfoFromToken(){
+        var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "").Trim();
+        if(string.IsNullOrEmpty(token)){
+            return null;
+        }
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]);
+        var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = false,  
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key)
+            };
+        var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+        var jwtToken = validatedToken as JwtSecurityToken;
+        var userName = jwtToken?.Claims.First(c => c.Type == ClaimTypes.Name)?.Value;
+        if(userName!=null){
+            var loggedInUser = await _db.AppUsers.Where(u => u.Username==userName).FirstOrDefaultAsync();
+            return loggedInUser;
+        }
+        return null;
     }
 
     [HttpGet("privacy")]
