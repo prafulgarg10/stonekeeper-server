@@ -35,7 +35,6 @@ public class HomeController : Controller
         return View();
     }
 
-    [Authorize(Roles = "Staff")]
     [HttpGet("categories")]
     public ObjectResult GetCategories(){
         var categories = _db.Categories.OrderBy(c => c.Name).ThenBy(c => c.Purity).ToList();
@@ -60,14 +59,15 @@ public class HomeController : Controller
             categoryName = p.Category.Name,
             materialName = p.Material.Name,
             productImage = p.ProductImage!=null ? new FileDTO{
-                name = p.ImageName,
+                name = p.ImageName!=null ? p.ImageName : "",
                 base64 = Convert.ToBase64String(p.ProductImage)
             } : null
         }).ToList();
 
         return new ObjectResult(products);
     }
-
+ 
+    [Authorize(Roles = "Admin")]
     [HttpPost("add-product")]
     public async Task<IActionResult> AddProduct([FromBody] ProductResponse p){
         if(p==null){
@@ -91,6 +91,7 @@ public class HomeController : Controller
                 });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("update-product")]
     public async Task<IActionResult> UpdateProduct([FromBody] ProductResponse p){
         if(p==null){
@@ -114,7 +115,8 @@ public class HomeController : Controller
         }
         return NotFound();
     }
-
+  
+    [Authorize(Roles = "Admin")]
     [HttpPost("delete-product")]
     public async Task<IActionResult> DeleteProduct([FromBody] ProductResponse p){
         if(p==null){
@@ -135,8 +137,7 @@ public class HomeController : Controller
         return NotFound();
     }
 
-    //[Authorize(Roles = "Admin")]
-
+    [Authorize(Roles = "Admin")]
     [HttpPost("add-category")]
     public async Task<IActionResult> AddCategory([FromBody] Category category){
         if(category==null){
@@ -161,7 +162,8 @@ public class HomeController : Controller
         var result = await _db.Database.SqlQuery<PricePerTenGramResponse>(qury).ToListAsync();
         return result; 
     }
-
+    
+    [Authorize(Roles = "Admin")]
     [HttpPost("add-pricing")]
     public async Task<IActionResult> AddNewPricing([FromBody] PricePerTenGramResponse pricePerTenGram){
         if(pricePerTenGram==null){
@@ -217,7 +219,7 @@ public class HomeController : Controller
                     ProductId = item.productId,
                     ProductQuantity = item.quantity,
                     ProductWeight = item.weight,
-                    ProductTotal = item.price.Value,
+                    ProductTotal = item.price!=null ? item.price.Value : 0,
                     ProductCategoryId = product.CategoryId,
                     MaterialPriceId = currentPriceId
                     };
@@ -232,7 +234,7 @@ public class HomeController : Controller
                     ProductId = item.productId,
                     ProductQuantity = item.quantity,
                     ProductWeight = item.weight,
-                    ProductTotal = item.price.Value,
+                    ProductTotal = item.price!=null ? item.price.Value : 0,
                     ProductCategoryId = product.CategoryId,
                     MaterialPriceId = currentPriceId
                     };
@@ -267,14 +269,13 @@ public class HomeController : Controller
        }
        return total;
     }
-
-
+    
     [HttpGet("get-orders")]
-    public async Task<List<UserOrders?>> GetOrders(){
+    public async Task<List<UserOrders>?> GetOrders(){
         var loggedInUser = await GetUserInfoFromToken();
         if(loggedInUser!=null){
             var orders = await _db.Orders.Where(o => o.CreatedBy==loggedInUser.Id).ToListAsync();
-            List<UserOrders?> userOrders = new List<UserOrders?>();
+            List<UserOrders> userOrders = new List<UserOrders>();
             foreach (var o in orders)
             {
                 var createdBy = await _db.AppUsers.Where(u => u.Id==o.CreatedBy).Select(u => u.Username).FirstOrDefaultAsync();
@@ -286,12 +287,16 @@ public class HomeController : Controller
                 var orderSummary = await _db.OrderSummaries.Where(os => os.Id==o.Id).ToListAsync();
                 var productsPerOrder = orderSummary.Select(os => new ProductPerOrder{
                     materialPrice = _db.PricePerTenGrams.Where(p => p.Id==os.MaterialPriceId).Select(p => p.Price).FirstOrDefault(),
-                    Name = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.Name).FirstOrDefault(),
-                    ProductImage = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.ProductImage).FirstOrDefault(),
-                    Weight = os.ProductWeight,
-                    Quantity = os.ProductQuantity,
+                    name = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.Name).FirstOrDefault(),
+                    category = _db.Categories.Where(c => c.Id==os.ProductCategoryId).Select(c => c.Name).FirstOrDefault(),
+                    productImage = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.ProductImage!=null ? new FileDTO{
+                                    name = p.ImageName!=null ? p.ImageName : "",
+                                    base64 = Convert.ToBase64String(p.ProductImage)
+                                    } : null).FirstOrDefault(),
+                    weight = os.ProductWeight,
+                    quantity = os.ProductQuantity,
                     productTotal = os.ProductTotal,
-                    Purity = _db.Categories.Where(c => c.Id==os.ProductCategoryId).Select(c => c.Purity).FirstOrDefault()
+                    purity = _db.Categories.Where(c => c.Id==os.ProductCategoryId).Select(c => c.Purity).FirstOrDefault()
                 }).ToList();
 
                 userOrder.products = productsPerOrder;
