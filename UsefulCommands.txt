@@ -1,5 +1,0 @@
-export PATH="$PATH:/Users/prafulgarg10/.dotnet/tools"
-dotnet ef dbcontext scaffold "server=localhost;port=3306;database=StonekeeperDB;user=root;password=Password@123;" Pomelo.EntityFrameworkCore.MySql --output-dir Models --context-dir Data --context ApplicationDbContext --force
-dotnet ef database drop --force
-
-openssl rand -base64 32
