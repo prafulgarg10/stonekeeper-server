@@ -11,6 +11,7 @@ using MyFirstServer.Service;
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetSection("database")["SqlServerConnection"];
+var validAudience = builder.Configuration.GetSection("JWT")["ValidAudience"];
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -22,7 +23,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", builder =>
-        builder.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader());
+        builder.WithOrigins(validAudience).AllowAnyMethod().AllowAnyHeader());
 });
 
 builder.Services.AddAuthentication(options =>
