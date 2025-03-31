@@ -1,17 +1,26 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MyFirstServer.Data;
-using MyFirstServer.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MyFirstServer;
 using MyFirstServer.Service;
 
-var builder = WebApplication.CreateBuilder(args);
+var options = new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+    WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot")
+};
+
+var builder = WebApplication.CreateBuilder(options);
+
+Directory.SetCurrentDirectory(AppContext.BaseDirectory.ToString());
 
 var connectionString = builder.Configuration.GetSection("database")["SqlServerConnection"];
 var validAudience = builder.Configuration.GetSection("JWT")["ValidAudience"];
+var secret = builder.Configuration.GetSection("JWT")["Secret"];
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -23,7 +32,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", builder =>
-        builder.WithOrigins(validAudience).AllowAnyMethod().AllowAnyHeader());
+        builder.WithOrigins(validAudience!=null ? validAudience : "http://localhost:4200").AllowAnyMethod().AllowAnyHeader());
 });
 
 builder.Services.AddAuthentication(options =>
@@ -39,9 +48,9 @@ builder.Services.AddAuthentication(options =>
         {
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidAudience = builder.Configuration["JWT:ValidAudience"],
+            ValidAudience = validAudience,
             ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret!=null ? secret : "Ne38sdEtvqskp1gRqC0dLTI/ZLpjxTrnZhJKfUADnQY="))
         };
     });
 
