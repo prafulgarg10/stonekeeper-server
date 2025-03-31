@@ -6,16 +6,18 @@ using System.Text;
 using MyFirstServer;
 using MyFirstServer.Service;
 
-var options = new WebApplicationOptions
-{
-    Args = args,
-    ContentRootPath = AppContext.BaseDirectory,
-    WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot")
-};
+// var options = new WebApplicationOptions
+// {
+//     Args = args,
+//     ContentRootPath = AppContext.BaseDirectory,
+//     WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot")
+// };
 
-var builder = WebApplication.CreateBuilder(options);
+// var builder = WebApplication.CreateBuilder(options);
 
-Directory.SetCurrentDirectory(AppContext.BaseDirectory.ToString());
+var builder = WebApplication.CreateBuilder(args);
+
+//Directory.SetCurrentDirectory(AppContext.BaseDirectory.ToString());
 
 var connectionString = builder.Configuration.GetSection("database")["SqlServerConnection"];
 var validAudience = builder.Configuration.GetSection("JWT")["ValidAudience"];

@@ -90,10 +90,25 @@ namespace MyFirstServer.Controllers
         [Route("register-admin")]
         public async Task<IActionResult> RegisterAdmin([FromBody] Register model)
         {
+            if(string.IsNullOrEmpty(model.SecretPassword)){
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Kindly provide secret key" });
+            }
+            else{
+                var secretKeyHash = _configuration["AdminSecretKey:SecretKeyHashed"];
+                //Stonekeeper@3103
+                if(secretKeyHash!=null){
+                    bool isValid = BCrypt.Net.BCrypt.Verify(model.SecretPassword, secretKeyHash);
+                    if(!isValid){
+                        return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Kindly provide valid secret key" });
+                    }
+                }
+                else{
+                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Problem adding user. Please try again later." });
+                }
+            }
             var userExists = await _authService.FindByNameAsync(model.Username);
             if (userExists != null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
-
             AppUser user = new AppUser()
             {
                 Email = model.Email,

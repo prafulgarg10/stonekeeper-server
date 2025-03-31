@@ -67,7 +67,8 @@ public class HomeController : Controller
         return new ObjectResult(products);
     }
  
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Staff")]
     [HttpPost("add-product")]
     public async Task<IActionResult> AddProduct([FromBody] ProductResponse p){
         if(p==null){
@@ -91,7 +92,8 @@ public class HomeController : Controller
                 });
     }
 
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Staff")]
     [HttpPost("update-product")]
     public async Task<IActionResult> UpdateProduct([FromBody] ProductResponse p){
         if(p==null){

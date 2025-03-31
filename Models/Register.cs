@@ -5,6 +5,7 @@ namespace MyFirstServer.Models;
 
 public class Register
 {
+    public string SecretPassword {get;set;} = "";
     [Required(ErrorMessage = "User Name is required")]
     public string Username { get; set; }
 
