@@ -71,7 +71,7 @@ namespace MyFirstServer.Controllers
             if (userExists != null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
 
-            AppUser user = new AppUser()
+            Appuser user = new Appuser()
             {
                 Email = model.Email,
                 Username = model.Username,
@@ -109,7 +109,7 @@ namespace MyFirstServer.Controllers
             var userExists = await _authService.FindByNameAsync(model.Username);
             if (userExists != null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
-            AppUser user = new AppUser()
+            Appuser user = new Appuser()
             {
                 Email = model.Email,
                 Username = model.Username,

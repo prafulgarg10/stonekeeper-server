@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MyFirstServer.Models;
 
-public partial class AppUser
+public partial class Appuser
 {
     public int Id { get; set; }
 

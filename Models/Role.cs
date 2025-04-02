@@ -11,5 +11,5 @@ public partial class Role
 
     public bool? IsActive { get; set; }
 
-    public virtual ICollection<AppUser> AppUsers { get; set; } = new List<AppUser>();
+    public virtual ICollection<Appuser> Appusers { get; set; } = new List<Appuser>();
 }

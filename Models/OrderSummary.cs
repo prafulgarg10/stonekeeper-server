@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MyFirstServer.Models;
 
-public partial class OrderSummary
+public partial class Ordersummary
 {
     public int Id { get; set; }
 
@@ -21,7 +21,7 @@ public partial class OrderSummary
 
     public virtual Order IdNavigation { get; set; } = null!;
 
-    public virtual PricePerTenGram MaterialPrice { get; set; } = null!;
+    public virtual Pricepertengram MaterialPrice { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
 }

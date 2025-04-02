@@ -25,11 +25,11 @@ public partial class Product
 
     public DateTime? CreatedAt { get; set; }
 
-    public DateTime? LastUpdated { get; set; }
+    public DateTime? Lastupdated { get; set; }
 
     public virtual Category Category { get; set; } = null!;
 
     public virtual Material Material { get; set; } = null!;
 
-    public virtual ICollection<OrderSummary> OrderSummaries { get; set; } = new List<OrderSummary>();
+    public virtual ICollection<Ordersummary> Ordersummaries { get; set; } = new List<Ordersummary>();
 }

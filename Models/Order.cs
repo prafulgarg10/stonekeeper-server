@@ -13,7 +13,7 @@ public partial class Order
 
     public int CreatedBy { get; set; }
 
-    public virtual AppUser CreatedByNavigation { get; set; } = null!;
+    public virtual Appuser CreatedByNavigation { get; set; } = null!;
 
-    public virtual ICollection<OrderSummary> OrderSummaries { get; set; } = new List<OrderSummary>();
+    public virtual ICollection<Ordersummary> Ordersummaries { get; set; } = new List<Ordersummary>();
 }

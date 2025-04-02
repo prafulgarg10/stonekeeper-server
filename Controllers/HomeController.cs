@@ -67,8 +67,7 @@ public class HomeController : Controller
         return new ObjectResult(products);
     }
  
-    //[Authorize(Roles = "Admin")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin")]
     [HttpPost("add-product")]
     public async Task<IActionResult> AddProduct([FromBody] ProductResponse p){
         if(p==null){
@@ -92,8 +91,7 @@ public class HomeController : Controller
                 });
     }
 
-    //[Authorize(Roles = "Admin")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin")]
     [HttpPost("update-product")]
     public async Task<IActionResult> UpdateProduct([FromBody] ProductResponse p){
         if(p==null){
@@ -171,19 +169,20 @@ public class HomeController : Controller
         if(pricePerTenGram==null){
             return BadRequest("Kindly provide some value to add");
         }
-        PricePerTenGram lPrice = new PricePerTenGram(){
+        Pricepertengram lPrice = new Pricepertengram(){
             Price = pricePerTenGram.price,
             MaterialId = pricePerTenGram.materialId,
-            LastUpdated = DateTime.Now
+            Lastupdated = DateTime.Now
         };
-        _db.PricePerTenGrams.Add(lPrice);
+        _db.Pricepertengrams.Add(lPrice);
         await _db.SaveChangesAsync();
         return Ok(new
                 {
-                    lastUpdated = lPrice.LastUpdated                    
+                    lastUpdated = lPrice.Lastupdated                    
                 });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("place-order")]
     public async Task<IActionResult> PlaceOrder([FromBody] OrderResponse[] order){
         if(order==null || (order!=null&&order.Length==0)){
@@ -216,7 +215,7 @@ public class HomeController : Controller
             if(product!=null){
                 var currentPriceId = latestMaterialPrice.Where(p => p.materialId==product.MaterialId).Select(p => p.id).FirstOrDefault();
                 if(product.Weight>item.weight && product.Quantity>item.quantity){
-                    OrderSummary os = new OrderSummary(){
+                    Ordersummary os = new Ordersummary(){
                     Id = or.Id,
                     ProductId = item.productId,
                     ProductQuantity = item.quantity,
@@ -227,11 +226,11 @@ public class HomeController : Controller
                     };
                     product.Weight = product.Weight-item.weight;
                     product.Quantity = product.Quantity-item.quantity;
-                    product.LastUpdated = DateTime.Now;
-                    _db.OrderSummaries.Add(os);
+                    product.Lastupdated = DateTime.Now;
+                    _db.Ordersummaries.Add(os);
                 }
                 else if(product.Weight==item.weight && product.Quantity==item.quantity){
-                    OrderSummary os = new OrderSummary(){
+                    Ordersummary os = new Ordersummary(){
                     Id = or.Id,
                     ProductId = item.productId,
                     ProductQuantity = item.quantity,
@@ -243,8 +242,8 @@ public class HomeController : Controller
                     product.Weight = 0;
                     product.Quantity = 0;
                     product.IsActive=false;
-                    product.LastUpdated = DateTime.Now;
-                    _db.OrderSummaries.Add(os);
+                    product.Lastupdated = DateTime.Now;
+                    _db.Ordersummaries.Add(os);
                 }
             }
         };
@@ -280,15 +279,15 @@ public class HomeController : Controller
             List<UserOrders> userOrders = new List<UserOrders>();
             foreach (var o in orders)
             {
-                var createdBy = await _db.AppUsers.Where(u => u.Id==o.CreatedBy).Select(u => u.Username).FirstOrDefaultAsync();
+                var createdBy = await _db.Appusers.Where(u => u.Id==o.CreatedBy).Select(u => u.Username).FirstOrDefaultAsync();
                 UserOrders userOrder = new UserOrders();
                 userOrder.orderId = o.Id;
                 userOrder.totalAmount = o.Total;
                 userOrder.createBy = createdBy!=null ? createdBy : "";
                 userOrder.createdOn = o.CreatedAt;
-                var orderSummary = await _db.OrderSummaries.Where(os => os.Id==o.Id).ToListAsync();
+                var orderSummary = await _db.Ordersummaries.Where(os => os.Id==o.Id).ToListAsync();
                 var productsPerOrder = orderSummary.Select(os => new ProductPerOrder{
-                    materialPrice = _db.PricePerTenGrams.Where(p => p.Id==os.MaterialPriceId).Select(p => p.Price).FirstOrDefault(),
+                    materialPrice = _db.Pricepertengrams.Where(p => p.Id==os.MaterialPriceId).Select(p => p.Price).FirstOrDefault(),
                     name = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.Name).FirstOrDefault(),
                     category = _db.Categories.Where(c => c.Id==os.ProductCategoryId).Select(c => c.Name).FirstOrDefault(),
                     productImage = _db.Products.Where(p => p.Id==os.ProductId).Select(p => p.ProductImage!=null ? new FileDTO{
@@ -309,7 +308,7 @@ public class HomeController : Controller
         return null;
     }
 
-    private async Task<AppUser?> GetUserInfoFromToken(){
+    private async Task<Appuser?> GetUserInfoFromToken(){
         var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "").Trim();
         if(string.IsNullOrEmpty(token)){
             return null;
@@ -327,7 +326,7 @@ public class HomeController : Controller
         var jwtToken = validatedToken as JwtSecurityToken;
         var userName = jwtToken?.Claims.First(c => c.Type == ClaimTypes.Name)?.Value;
         if(userName!=null){
-            var loggedInUser = await _db.AppUsers.Where(u => u.Username==userName).FirstOrDefaultAsync();
+            var loggedInUser = await _db.Appusers.Where(u => u.Username==userName).FirstOrDefaultAsync();
             return loggedInUser;
         }
         return null;

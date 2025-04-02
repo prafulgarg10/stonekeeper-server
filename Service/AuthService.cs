@@ -13,14 +13,14 @@ public class AuthService : IAuthService
         _dbContext = dbContext;
     }
 
-    public async Task<IEnumerable<AppUser>> GetAllUsersAsync()
+    public async Task<IEnumerable<Appuser>> GetAllUsersAsync()
     {
-        return await _dbContext.AppUsers.ToListAsync();
+        return await _dbContext.Appusers.ToListAsync();
     }
 
-    public async Task<AppUser?> FindByNameAsync(string userName)
+    public async Task<Appuser?> FindByNameAsync(string userName)
     {
-        var user = await _dbContext.AppUsers.Where(u => u.Username.ToLower()==userName.ToLower()).FirstOrDefaultAsync();
+        var user = await _dbContext.Appusers.Where(u => u.Username.ToLower()==userName.ToLower()).FirstOrDefaultAsync();
         if(user!=null){
             var role = await _dbContext.Roles.Where(r => r.Id==user.RoleId).FirstOrDefaultAsync();
             user.Role = role!=null ? role : user.Role;
@@ -28,7 +28,7 @@ public class AuthService : IAuthService
         return user;
     }
 
-    public bool CheckPassword(AppUser user, string password)
+    public bool CheckPassword(Appuser user, string password)
     {
         string passwordHash = user.Password;
         if(!string.IsNullOrEmpty(passwordHash)){
@@ -37,7 +37,7 @@ public class AuthService : IAuthService
         return false;
     }
 
-    public async Task<int?> CreateAsync(AppUser user)
+    public async Task<int?> CreateAsync(Appuser user)
     {
         try{
             _dbContext.Add(user);
