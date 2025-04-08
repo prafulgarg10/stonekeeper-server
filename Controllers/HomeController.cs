@@ -163,7 +163,7 @@ public class HomeController : Controller
     }
 
     private async Task<List<PricePerTenGramResponse>> LatestMaterialPrice(){
-        string query = "SELECT mt.Name As materialName, mt.Id As materialId, pr.Price As price, pr.LastUpdated As lastUpdated, pr.Id As id FROM PricePerTenGrams pr INNER JOIN Material mt ON pr.Id = mt.Id WHERE (pr.Id, LastUpdated) IN (SELECT Id, MAX(LastUpdated) LastUpdated FROM PricePerTenGrams GROUP BY Id)";
+        string query = "SELECT mt.Name As materialName, mt.Id As materialId, pr.Price As price, pr.LastUpdated As lastUpdated, pr.Id As id FROM PricePerTenGrams pr INNER JOIN Material mt ON pr.material_id = mt.Id WHERE (pr.material_id, LastUpdated) IN (SELECT material_id , MAX(LastUpdated) LastUpdated FROM PricePerTenGrams GROUP BY material_id)";
         FormattableString qury = FormattableStringFactory.Create(query);
         var result = await _db.Database.SqlQuery<PricePerTenGramResponse>(qury).ToListAsync();
         return result; 
