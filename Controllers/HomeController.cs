@@ -67,11 +67,14 @@ public class HomeController : Controller
         return new ObjectResult(products);
     }
  
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin, Staff")]
     [HttpPost("add-product")]
     public async Task<IActionResult> AddProduct([FromBody] ProductResponse p){
         if(p==null){
             return BadRequest("Kindly provide some value to add");
+        }
+        if(p.quantity==0 || p.weight==0){
+            return BadRequest("Kindly provide appropriate data.");
         }
         Product product = new Product(){
             Name = p.name,
@@ -99,6 +102,9 @@ public class HomeController : Controller
         }
         if(p.id<=0){
             return NotFound();
+        }
+        if(p.weight==0 || p.quantity==0){
+            return BadRequest("Kindly provide appropriate data.");
         }
         var product = _db.Products.Where(pd => pd.Id==p.id).FirstOrDefault();
         if(product!=null){
@@ -214,8 +220,7 @@ public class HomeController : Controller
             Product? product = _db.Products.Where(p => p.Id==item.productId).FirstOrDefault();
             if(product!=null){
                 var currentPriceId = latestMaterialPrice.Where(p => p.materialId==product.MaterialId).Select(p => p.id).FirstOrDefault();
-                if(product.Weight>item.weight && product.Quantity>item.quantity){
-                    Ordersummary os = new Ordersummary(){
+                Ordersummary os = new Ordersummary(){
                     Id = or.Id,
                     ProductId = item.productId,
                     ProductQuantity = item.quantity,
@@ -224,23 +229,30 @@ public class HomeController : Controller
                     ProductCategoryId = product.CategoryId,
                     MaterialPriceId = currentPriceId
                     };
+                if(product.Weight>item.weight && product.Quantity>item.quantity){
                     product.Weight = product.Weight-item.weight;
                     product.Quantity = product.Quantity-item.quantity;
                     product.Lastupdated = DateTime.Now;
                     _db.Ordersummaries.Add(os);
                 }
                 else if(product.Weight==item.weight && product.Quantity==item.quantity){
-                    Ordersummary os = new Ordersummary(){
-                    Id = or.Id,
-                    ProductId = item.productId,
-                    ProductQuantity = item.quantity,
-                    ProductWeight = item.weight,
-                    ProductTotal = item.price!=null ? item.price.Value : 0,
-                    ProductCategoryId = product.CategoryId,
-                    MaterialPriceId = currentPriceId
-                    };
                     product.Weight = 0;
                     product.Quantity = 0;
+                    product.IsActive=false;
+                    product.Lastupdated = DateTime.Now;
+                    _db.Ordersummaries.Add(os);
+                }
+                else if(product.Weight>item.weight && product.Quantity==item.quantity){
+                    product.Weight = product.Weight-item.weight;
+                    product.Quantity = 1; //keeping it 1 by default as still the product is available
+                    os.ProductQuantity = 1;
+                    product.Lastupdated = DateTime.Now;
+                    _db.Ordersummaries.Add(os);
+                }
+                else if(product.Weight==item.weight && product.Quantity>item.quantity){
+                    product.Weight = product.Weight-item.weight;
+                    product.Quantity = product.Quantity; //utilising full capacity as no weight is left
+                    os.ProductQuantity = product.Quantity;
                     product.IsActive=false;
                     product.Lastupdated = DateTime.Now;
                     _db.Ordersummaries.Add(os);
@@ -264,18 +276,19 @@ public class HomeController : Controller
         if(latestMaterialPrice!=null){
             materialPrice = latestMaterialPrice.Where(p => p.materialId==product.MaterialId).Select(p => p.price).FirstOrDefault();
         }
-        if(purity!=null && materialPrice!=null){
+        if(purity!=null && materialPrice!=null && weight>0 && weight<=product.Weight){
             total = purity.Value*materialPrice.Value*weight/1000;
         }
        }
        return total;
     }
     
+    [Authorize(Roles = "Admin, Staff")]
     [HttpGet("get-orders")]
     public async Task<List<UserOrders>?> GetOrders(){
         var loggedInUser = await GetUserInfoFromToken();
         if(loggedInUser!=null){
-            var orders = await _db.Orders.Where(o => o.CreatedBy==loggedInUser.Id).ToListAsync();
+            var orders = await _db.Orders.Where(o => o.CreatedBy==loggedInUser.Id).OrderByDescending(o => o.Id).ToListAsync();
             List<UserOrders> userOrders = new List<UserOrders>();
             foreach (var o in orders)
             {
