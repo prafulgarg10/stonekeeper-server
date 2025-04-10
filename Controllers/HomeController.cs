@@ -271,7 +271,7 @@ public class HomeController : Controller
        Product? product = _db.Products.Where(p => p.Id==Id).FirstOrDefault();
        decimal total = 0;
        if(product!=null){
-        decimal? purity = _db.Categories.Where(c => c.Id==product.CategoryId).Select(c => c.Purity).FirstOrDefault();
+        decimal? purity = _db.Categories.Where(c => c.Id==product.CategoryId).Select(c => c.Sellingpurity).FirstOrDefault();
         Nullable<int> materialPrice = null;
         if(latestMaterialPrice!=null){
             materialPrice = latestMaterialPrice.Where(p => p.materialId==product.MaterialId).Select(p => p.price).FirstOrDefault();
@@ -310,7 +310,8 @@ public class HomeController : Controller
                     weight = os.ProductWeight,
                     quantity = os.ProductQuantity,
                     productTotal = os.ProductTotal,
-                    purity = _db.Categories.Where(c => c.Id==os.ProductCategoryId).Select(c => c.Purity).FirstOrDefault()
+                    materialId = _db.Pricepertengrams.Where(p => p.Id==os.MaterialPriceId).Select(p => p.MaterialId).FirstOrDefault(),
+                    purity = _db.Categories.Where(c => c.Id==os.ProductCategoryId).Select(c => c.Sellingpurity).FirstOrDefault()
                 }).ToList();
 
                 userOrder.products = productsPerOrder;

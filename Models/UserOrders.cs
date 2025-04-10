@@ -19,5 +19,6 @@ public class ProductPerOrder{
     public decimal? purity { get; set; }
     public int quantity { get; set; }
     public int materialPrice {get;set;}
+    public int? materialId {get;set;}
     public decimal productTotal {get;set;}
 }

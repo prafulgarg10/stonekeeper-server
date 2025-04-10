@@ -33,9 +33,9 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<Appconfig>(entity =>
         {
             entity
@@ -96,6 +96,9 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Purity)
                 .HasPrecision(5, 2)
                 .HasColumnName("purity");
+            entity.Property(e => e.Sellingpurity)
+                .HasPrecision(5, 2)
+                .HasColumnName("sellingpurity");
         });
 
         modelBuilder.Entity<Material>(entity =>
