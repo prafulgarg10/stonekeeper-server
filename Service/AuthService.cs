@@ -1,9 +1,9 @@
 using System;
 using Microsoft.EntityFrameworkCore;
-using MyFirstServer.Data;
-using MyFirstServer.Models;
+using Stonekeeper.Data;
+using Stonekeeper.Models;
 
-namespace MyFirstServer.Service;
+namespace Stonekeeper.Service;
 
 public class AuthService : IAuthService
 {

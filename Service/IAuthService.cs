@@ -1,7 +1,7 @@
 using System;
-using MyFirstServer.Models;
+using Stonekeeper.Models;
 
-namespace MyFirstServer;
+namespace Stonekeeper;
 
 public interface IAuthService
 {

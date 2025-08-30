@@ -1,6 +1,6 @@
 using System;
 
-namespace MyFirstServer.Models;
+namespace Stonekeeper.Models;
 
 public class PricePerTenGramResponse
 {

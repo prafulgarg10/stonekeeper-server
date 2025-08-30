@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using MyFirstServer.Models;
+using Stonekeeper.Models;
 
-namespace MyFirstServer.Data;
+namespace Stonekeeper.Data;
 
 public partial class ApplicationDbContext : DbContext
 {

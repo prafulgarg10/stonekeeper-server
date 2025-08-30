@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace MyFirstServer.Models;
+namespace Stonekeeper.Models;
 
 public class Register
 {

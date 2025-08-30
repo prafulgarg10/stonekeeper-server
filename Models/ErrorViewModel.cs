@@ -1,4 +1,4 @@
-namespace MyFirstServer.Models;
+namespace Stonekeeper.Models;
 
 public class ErrorViewModel
 {

@@ -9,10 +9,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using MyFirstServer.Data;
-using MyFirstServer.Models;
+using Stonekeeper.Data;
+using Stonekeeper.Models;
 
-namespace MyFirstServer.Controllers;
+namespace Stonekeeper.Controllers;
 
 [Route("/")]
 public class HomeController : Controller

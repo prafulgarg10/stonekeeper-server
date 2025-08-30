@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace MyFirstServer.Models;
+namespace Stonekeeper.Models;
 
 public partial class Appuser
 {

@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using MyFirstServer.Models;
+using Stonekeeper.Models;
 
-namespace MyFirstServer.Controllers
+namespace Stonekeeper.Controllers
 {
     [Route("/")]
     [ApiController]

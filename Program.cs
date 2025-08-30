@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using MyFirstServer.Data;
+using Stonekeeper.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using MyFirstServer;
-using MyFirstServer.Service;
+using Stonekeeper;
+using Stonekeeper.Service;
 
 // var options = new WebApplicationOptions
 // {
@@ -34,7 +34,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", builder =>
-        builder.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader());
+        builder.WithOrigins(new[] { "http://localhost:4200", "http://localhost:8080" }).AllowAnyMethod().AllowAnyHeader());
 });
 
 builder.Services.AddAuthentication(options =>
