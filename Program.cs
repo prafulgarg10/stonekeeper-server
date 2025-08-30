@@ -13,16 +13,15 @@ using MyFirstServer.Service;
 //     WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot")
 // };
 
-// var builder = WebApplication.CreateBuilder(options);
+//var builder = WebApplication.CreateBuilder(options);
 
 var builder = WebApplication.CreateBuilder(args);
 
 //Directory.SetCurrentDirectory(AppContext.BaseDirectory.ToString());
-
-var connectionString = builder.Configuration.GetSection("database")["SqlServerConnection"];
+var databaseCredentials = builder.Configuration.GetSection("Database");
+var connectionString = $"server={databaseCredentials["Host"]};port={databaseCredentials["Port"]};database={databaseCredentials["DbName"]};Username={databaseCredentials["UserName"]};password={databaseCredentials["Password"]};";
 var validAudience = builder.Configuration.GetSection("JWT")["ValidAudience"];
 var secret = builder.Configuration.GetSection("JWT")["Secret"];
-
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -35,7 +34,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", builder =>
-        builder.WithOrigins(validAudience!=null ? validAudience : "http://localhost:4200").AllowAnyMethod().AllowAnyHeader());
+        builder.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader());
 });
 
 builder.Services.AddAuthentication(options =>
